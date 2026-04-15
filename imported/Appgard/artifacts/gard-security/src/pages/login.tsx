@@ -33,7 +33,8 @@ export default function Login() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/setup/status")
+    const apiBase = import.meta.env.VITE_API_URL ?? "";
+    fetch(`${apiBase}/api/setup/status`)
       .then(async (res) => {
         if (!res.ok) throw new Error("No se pudo revisar la configuracion inicial");
         return (await res.json()) as SetupStatus;
@@ -85,7 +86,7 @@ export default function Login() {
 
     setSetupSaving(true);
     try {
-      const res = await fetch("/api/setup/admin", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? ""}/api/setup/admin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(setupForm),
