@@ -2,16 +2,7 @@
   "installCommand": "cd imported/Appgard && pnpm install",
   "buildCommand": "cd imported/Appgard && pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/gard-security run build",
   "outputDirectory": "imported/Appgard/artifacts/gard-security/dist",
-  "functions": {
-    "imported/Appgard/api/index.js": {
-      "maxDuration": 30
-    }
-  },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/imported/Appgard/api"
-    },
     {
       "source": "/((?!api).*)",
       "destination": "/index.html"
