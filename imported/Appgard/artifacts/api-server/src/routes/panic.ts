@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, panicAlertsTable, usersTable, activityLogTable } from "@workspace/db";
 import { TriggerPanicBody, ResolvePanicParams } from "@workspace/api-zod";
-import { getUserIdFromAuth } from "./auth";
+import { getUserIdFromAuth, requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
@@ -20,7 +20,7 @@ function formatPanic(p: any, userName: string) {
   };
 }
 
-router.get("/panic", async (_req, res): Promise<void> => {
+router.get("/panic", requireAuth(["supervisor", "admin"]), async (_req, res): Promise<void> => {
   const alerts = await db.select().from(panicAlertsTable).orderBy(panicAlertsTable.createdAt);
 
   const result = await Promise.all(
@@ -33,7 +33,7 @@ router.get("/panic", async (_req, res): Promise<void> => {
   res.json(result);
 });
 
-router.post("/panic", async (req, res): Promise<void> => {
+router.post("/panic", requireAuth(), async (req, res): Promise<void> => {
   const parsed = TriggerPanicBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -67,7 +67,7 @@ router.post("/panic", async (req, res): Promise<void> => {
   res.status(201).json(formatPanic(alert, u?.name ?? "Desconocido"));
 });
 
-router.post("/panic/:id/resolve", async (req, res): Promise<void> => {
+router.post("/panic/:id/resolve", requireAuth(["supervisor", "admin"]), async (req, res): Promise<void> => {
   const params = ResolvePanicParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

@@ -2,11 +2,11 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, messagesTable, usersTable } from "@workspace/db";
 import { SendMessageBody, ListMessagesQueryParams } from "@workspace/api-zod";
-import { getUserIdFromAuth } from "./auth";
+import { getUserIdFromAuth, requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
-router.get("/messages", async (req, res): Promise<void> => {
+router.get("/messages", requireAuth(), async (req, res): Promise<void> => {
   const params = ListMessagesQueryParams.safeParse(req.query);
   const channelId = params.success ? params.data.channelId : undefined;
 
@@ -41,7 +41,7 @@ router.get("/messages", async (req, res): Promise<void> => {
   res.json(result);
 });
 
-router.post("/messages", async (req, res): Promise<void> => {
+router.post("/messages", requireAuth(), async (req, res): Promise<void> => {
   const parsed = SendMessageBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

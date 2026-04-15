@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, companiesTable } from "@workspace/db";
+import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
@@ -19,12 +20,12 @@ function fmt(c: typeof companiesTable.$inferSelect) {
   };
 }
 
-router.get("/companies", async (_req, res): Promise<void> => {
+router.get("/companies", requireAuth(["supervisor", "admin"]), async (_req, res): Promise<void> => {
   const companies = await db.select().from(companiesTable).orderBy(companiesTable.name);
   res.json(companies.map(fmt));
 });
 
-router.post("/companies", async (req, res): Promise<void> => {
+router.post("/companies", requireAuth(["supervisor", "admin"]), async (req, res): Promise<void> => {
   const { name, rut, address, contactName, contactPhone, contactEmail, notes } = req.body;
   if (!name?.trim()) {
     res.status(400).json({ error: "El nombre es requerido" });
@@ -37,7 +38,7 @@ router.post("/companies", async (req, res): Promise<void> => {
   res.status(201).json(fmt(company));
 });
 
-router.patch("/companies/:id", async (req, res): Promise<void> => {
+router.patch("/companies/:id", requireAuth(["supervisor", "admin"]), async (req, res): Promise<void> => {
   const id = Number(req.params.id);
   if (!id) { res.status(400).json({ error: "ID inválido" }); return; }
 
@@ -57,7 +58,7 @@ router.patch("/companies/:id", async (req, res): Promise<void> => {
   res.json(fmt(company));
 });
 
-router.delete("/companies/:id", async (req, res): Promise<void> => {
+router.delete("/companies/:id", requireAuth(["supervisor", "admin"]), async (req, res): Promise<void> => {
   const id = Number(req.params.id);
   if (!id) { res.status(400).json({ error: "ID inválido" }); return; }
 

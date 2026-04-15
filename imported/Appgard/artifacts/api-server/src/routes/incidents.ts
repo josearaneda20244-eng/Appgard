@@ -8,7 +8,7 @@ import {
   UpdateIncidentBody,
   ListIncidentsQueryParams,
 } from "@workspace/api-zod";
-import { getUserIdFromAuth } from "./auth";
+import { getUserIdFromAuth, requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
@@ -28,7 +28,7 @@ function formatIncident(i: any, reportedByName: string) {
   };
 }
 
-router.get("/incidents", async (req, res): Promise<void> => {
+router.get("/incidents", requireAuth(), async (req, res): Promise<void> => {
   const params = ListIncidentsQueryParams.safeParse(req.query);
 
   const conditions: any[] = [];
@@ -53,7 +53,7 @@ router.get("/incidents", async (req, res): Promise<void> => {
   res.json(result);
 });
 
-router.post("/incidents", async (req, res): Promise<void> => {
+router.post("/incidents", requireAuth(), async (req, res): Promise<void> => {
   const parsed = CreateIncidentBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -85,7 +85,7 @@ router.post("/incidents", async (req, res): Promise<void> => {
   res.status(201).json(formatIncident(incident, u?.name ?? "Desconocido"));
 });
 
-router.get("/incidents/:id", async (req, res): Promise<void> => {
+router.get("/incidents/:id", requireAuth(), async (req, res): Promise<void> => {
   const params = GetIncidentParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -103,7 +103,7 @@ router.get("/incidents/:id", async (req, res): Promise<void> => {
   res.json(formatIncident(incident, u?.name ?? "Desconocido"));
 });
 
-router.patch("/incidents/:id", async (req, res): Promise<void> => {
+router.patch("/incidents/:id", requireAuth(["supervisor", "admin"]), async (req, res): Promise<void> => {
   const params = UpdateIncidentParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

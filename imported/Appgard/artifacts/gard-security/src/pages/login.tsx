@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/components/auth-provider";
 import { useLogin } from "@workspace/api-client-react";
@@ -6,15 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Loader2, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
+import { Shield, Loader2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const testCredentials = [
-  { rol: "Guardia", rut: "11.111.111-1", codigo: "1234", color: "text-blue-400 border-blue-500/30 bg-blue-500/5" },
-  { rol: "Guardia 2", rut: "44.444.444-4", codigo: "4444", color: "text-cyan-400 border-cyan-500/30 bg-cyan-500/5" },
-  { rol: "Supervisor", rut: "22.222.222-2", codigo: "2222", color: "text-orange-400 border-orange-500/30 bg-orange-500/5" },
-  { rol: "Jefe / Admin", rut: "33.333.333-3", codigo: "3333", color: "text-purple-400 border-purple-500/30 bg-purple-500/5" },
-];
+type SetupStatus = {
+  needsSetup: boolean;
+};
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -23,7 +20,41 @@ export default function Login() {
   const loginMutation = useLogin();
   const [rut, setRut] = useState("");
   const [accessCode, setAccessCode] = useState("");
-  const [showCreds, setShowCreds] = useState(false);
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [checkingSetup, setCheckingSetup] = useState(true);
+  const [setupSaving, setSetupSaving] = useState(false);
+  const [setupForm, setSetupForm] = useState({
+    rut: "",
+    name: "",
+    email: "",
+    phone: "",
+    accessCode: "",
+  });
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/setup/status")
+      .then(async (res) => {
+        if (!res.ok) throw new Error("No se pudo revisar la configuracion inicial");
+        return (await res.json()) as SetupStatus;
+      })
+      .then((data) => {
+        if (active) setNeedsSetup(data.needsSetup);
+      })
+      .catch(() => {
+        toast({
+          variant: "destructive",
+          title: "No se pudo conectar con el servidor",
+          description: "Revisa que la API y la base de datos esten configuradas correctamente.",
+        });
+      })
+      .finally(() => {
+        if (active) setCheckingSetup(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [toast]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,9 +76,34 @@ export default function Login() {
     );
   };
 
-  const fillCredentials = (cred: { rut: string; codigo: string }) => {
-    setRut(cred.rut);
-    setAccessCode(cred.codigo);
+  const handleInitialSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!setupForm.rut || !setupForm.name || !setupForm.email || !setupForm.phone || !setupForm.accessCode) {
+      toast({ variant: "destructive", title: "Completa todos los campos" });
+      return;
+    }
+
+    setSetupSaving(true);
+    try {
+      const res = await fetch("/api/setup/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(setupForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "No se pudo crear el administrador");
+      login(data.token, data.user);
+      toast({ title: "Administrador creado correctamente" });
+      setLocation("/dashboard");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error en configuracion inicial",
+        description: error instanceof Error ? error.message : "Intenta nuevamente.",
+      });
+    } finally {
+      setSetupSaving(false);
+    }
   };
 
   return (
@@ -66,88 +122,66 @@ export default function Login() {
 
         <Card className="border-border/50 shadow-2xl backdrop-blur-sm bg-card/95">
           <CardHeader className="pb-5">
-            <CardTitle className="text-xl">Acceso Seguro</CardTitle>
+            <CardTitle className="text-xl">{needsSetup ? "Configuracion inicial" : "Acceso Seguro"}</CardTitle>
             <CardDescription>
-              Ingresa tu RUT y codigo de acceso para autenticarte.
+              {checkingSetup
+                ? "Verificando estado del sistema..."
+                : needsSetup
+                  ? "Crea el primer administrador real. No se cargaran datos de prueba."
+                  : "Ingresa tu RUT y codigo de acceso para autenticarte."}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="rut">RUT</Label>
-                <Input
-                  id="rut"
-                  placeholder="12.345.678-9"
-                  value={rut}
-                  onChange={(e) => setRut(e.target.value)}
-                  className="font-mono bg-background/50"
-                  autoComplete="username"
-                  required
-                />
+            {checkingSetup ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verificando...
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="accessCode">Codigo de Acceso</Label>
-                <Input
-                  id="accessCode"
-                  type="password"
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
-                  className="font-mono bg-background/50"
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full mt-2"
-                size="lg"
-                disabled={loginMutation.isPending}
-              >
-                {loginMutation.isPending ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Autenticando...</>
-                ) : (
-                  "Entrar al Panel"
-                )}
-              </Button>
-            </form>
+            ) : needsSetup ? (
+              <form onSubmit={handleInitialSetup} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="setup-rut">RUT administrador</Label>
+                  <Input id="setup-rut" value={setupForm.rut} onChange={(e) => setSetupForm((f) => ({ ...f, rut: e.target.value }))} placeholder="RUT del administrador" autoComplete="username" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="setup-name">Nombre completo</Label>
+                  <Input id="setup-name" value={setupForm.name} onChange={(e) => setSetupForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nombre del administrador" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="setup-email">Email</Label>
+                  <Input id="setup-email" type="email" value={setupForm.email} onChange={(e) => setSetupForm((f) => ({ ...f, email: e.target.value }))} placeholder="Email corporativo" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="setup-phone">Telefono</Label>
+                  <Input id="setup-phone" value={setupForm.phone} onChange={(e) => setSetupForm((f) => ({ ...f, phone: e.target.value }))} placeholder="Telefono corporativo" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="setup-code">Codigo de acceso</Label>
+                  <Input id="setup-code" type="password" value={setupForm.accessCode} onChange={(e) => setSetupForm((f) => ({ ...f, accessCode: e.target.value }))} autoComplete="new-password" required />
+                </div>
+                <Button type="submit" className="w-full mt-2" size="lg" disabled={setupSaving}>
+                  {setupSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creando...</> : <><UserPlus className="mr-2 h-4 w-4" /> Crear Administrador</>}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="rut">RUT</Label>
+                  <Input id="rut" placeholder="RUT del usuario" value={rut} onChange={(e) => setRut(e.target.value)} className="font-mono bg-background/50" autoComplete="username" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="accessCode">Codigo de Acceso</Label>
+                  <Input id="accessCode" type="password" value={accessCode} onChange={(e) => setAccessCode(e.target.value)} className="font-mono bg-background/50" autoComplete="current-password" required />
+                </div>
+                <Button type="submit" className="w-full mt-2" size="lg" disabled={loginMutation.isPending}>
+                  {loginMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Autenticando...</> : "Entrar al Panel"}
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="border-border/40 bg-card/70">
-          <button
-            type="button"
-            className="w-full flex items-center justify-between px-4 py-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => setShowCreds(!showCreds)}
-          >
-            <span className="flex items-center gap-2">
-              <UserCheck size={15} className="text-primary" />
-              Credenciales de prueba
-            </span>
-            {showCreds ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-          </button>
-          {showCreds && (
-            <div className="px-4 pb-4 grid grid-cols-2 gap-2">
-              {testCredentials.map((cred) => (
-                <button
-                  key={cred.rut}
-                  type="button"
-                  onClick={() => fillCredentials(cred)}
-                  className={`text-left rounded-xl border px-3 py-2.5 transition-all hover:opacity-80 active:scale-95 ${cred.color}`}
-                >
-                  <p className="text-[11px] font-bold uppercase tracking-wide">{cred.rol}</p>
-                  <p className="font-mono text-xs text-foreground/80 mt-0.5">{cred.rut}</p>
-                  <p className="font-mono text-xs text-foreground/60">cod: {cred.codigo}</p>
-                </button>
-              ))}
-              <p className="col-span-2 text-[10px] text-muted-foreground text-center pt-1">
-                Haz clic en un perfil para rellenar el formulario automaticamente
-              </p>
-            </div>
-          )}
-        </Card>
-
         <div className="text-center text-[10px] text-muted-foreground font-mono">
-          <p>SOLO PERSONAL AUTORIZADO · GARD Security Systems v1.0.4</p>
+          <p>SOLO PERSONAL AUTORIZADO · GARD Security Systems v1.0.5</p>
         </div>
       </div>
     </div>

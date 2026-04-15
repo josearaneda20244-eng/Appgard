@@ -14,7 +14,6 @@ export interface Round {
   /** @nullable */
   description?: string | null;
   status: RoundStatus;
-  shift: "dia" | "noche" | "ambos";
   /** @nullable */
   assignedToId?: number | null;
   /** @nullable */

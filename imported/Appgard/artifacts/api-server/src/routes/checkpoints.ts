@@ -7,7 +7,7 @@ import {
   CheckinCheckpointBody,
   ListCheckpointsQueryParams,
 } from "@workspace/api-zod";
-import { getUserIdFromAuth } from "./auth";
+import { getUserIdFromAuth, requireAuth } from "./auth";
 
 const router: IRouter = Router();
 const MAX_CHECKPOINT_RADIUS_METERS = 35;
@@ -27,7 +27,7 @@ function formatCheckpoint(c: any) {
   };
 }
 
-router.get("/checkpoints", async (req, res): Promise<void> => {
+router.get("/checkpoints", requireAuth(), async (req, res): Promise<void> => {
   const params = ListCheckpointsQueryParams.safeParse(req.query);
   if (!params.success || !params.data.roundId) {
     res.status(400).json({ error: "roundId is required" });
@@ -43,7 +43,7 @@ router.get("/checkpoints", async (req, res): Promise<void> => {
   res.json(checkpoints.map(formatCheckpoint));
 });
 
-router.post("/checkpoints", async (req, res): Promise<void> => {
+router.post("/checkpoints", requireAuth(["supervisor", "admin"]), async (req, res): Promise<void> => {
   const parsed = CreateCheckpointBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -61,7 +61,7 @@ router.post("/checkpoints", async (req, res): Promise<void> => {
   res.status(201).json(formatCheckpoint(checkpoint));
 });
 
-router.post("/checkpoints/:id/checkin", async (req, res): Promise<void> => {
+router.post("/checkpoints/:id/checkin", requireAuth(), async (req, res): Promise<void> => {
   const params = CheckinCheckpointParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

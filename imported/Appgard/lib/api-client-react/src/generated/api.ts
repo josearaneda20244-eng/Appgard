@@ -29,6 +29,7 @@ import type {
   GuardLocation,
   HealthStatus,
   Incident,
+  InitialAdminBody,
   ListCheckpointsParams,
   ListIncidentsParams,
   ListMessagesParams,
@@ -42,6 +43,7 @@ import type {
   RoundDetail,
   RoundStats,
   SendMessageBody,
+  SetupStatus,
   TriggerPanicBody,
   UpdateIncidentBody,
   UpdateRoundBody,
@@ -359,6 +361,167 @@ export const useLogout = <
   TContext
 > => {
   return useMutation(getLogoutMutationOptions(options));
+};
+
+/**
+ * @summary Check whether initial administrator setup is required
+ */
+export const getGetSetupStatusUrl = () => {
+  return `/api/setup/status`;
+};
+
+export const getSetupStatus = async (
+  options?: RequestInit,
+): Promise<SetupStatus> => {
+  return customFetch<SetupStatus>(getGetSetupStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSetupStatusQueryKey = () => {
+  return [`/api/setup/status`] as const;
+};
+
+export const getGetSetupStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSetupStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSetupStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSetupStatusQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSetupStatus>>> = ({
+    signal,
+  }) => getSetupStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSetupStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSetupStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSetupStatus>>
+>;
+export type GetSetupStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Check whether initial administrator setup is required
+ */
+
+export function useGetSetupStatus<
+  TData = Awaited<ReturnType<typeof getSetupStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSetupStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSetupStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create the first administrator when the database is empty
+ */
+export const getCreateInitialAdminUrl = () => {
+  return `/api/setup/admin`;
+};
+
+export const createInitialAdmin = async (
+  initialAdminBody: InitialAdminBody,
+  options?: RequestInit,
+): Promise<AuthResponse> => {
+  return customFetch<AuthResponse>(getCreateInitialAdminUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(initialAdminBody),
+  });
+};
+
+export const getCreateInitialAdminMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createInitialAdmin>>,
+    TError,
+    { data: BodyType<InitialAdminBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createInitialAdmin>>,
+  TError,
+  { data: BodyType<InitialAdminBody> },
+  TContext
+> => {
+  const mutationKey = ["createInitialAdmin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createInitialAdmin>>,
+    { data: BodyType<InitialAdminBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createInitialAdmin(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateInitialAdminMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createInitialAdmin>>
+>;
+export type CreateInitialAdminMutationBody = BodyType<InitialAdminBody>;
+export type CreateInitialAdminMutationError = ErrorType<void>;
+
+/**
+ * @summary Create the first administrator when the database is empty
+ */
+export const useCreateInitialAdmin = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createInitialAdmin>>,
+    TError,
+    { data: BodyType<InitialAdminBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createInitialAdmin>>,
+  TError,
+  { data: BodyType<InitialAdminBody> },
+  TContext
+> => {
+  return useMutation(getCreateInitialAdminMutationOptions(options));
 };
 
 /**

@@ -40,6 +40,18 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface SetupStatus {
+  needsSetup: boolean;
+}
+
+export interface InitialAdminBody {
+  rut: string;
+  name: string;
+  email: string;
+  phone: string;
+  accessCode: string;
+}
+
 export type CreateUserBodyRole =
   (typeof CreateUserBodyRole)[keyof typeof CreateUserBodyRole];
 

@@ -53,6 +53,24 @@ export const GetMeResponse = zod.object({
 });
 
 /**
+ * @summary Check whether initial administrator setup is required
+ */
+export const GetSetupStatusResponse = zod.object({
+  needsSetup: zod.boolean(),
+});
+
+/**
+ * @summary Create the first administrator when the database is empty
+ */
+export const CreateInitialAdminBody = zod.object({
+  rut: zod.string(),
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string(),
+  accessCode: zod.string(),
+});
+
+/**
  * @summary List all users (admin/supervisor)
  */
 export const ListUsersQueryParams = zod.object({
@@ -152,7 +170,6 @@ export const ListRoundsResponseItem = zod.object({
   companyName: zod.string(),
   description: zod.string().nullish(),
   status: zod.enum(["pending", "active", "completed"]),
-  shift: zod.enum(["dia", "noche", "ambos"]),
   assignedToId: zod.number().nullish(),
   assignedToName: zod.string().nullish(),
   createdById: zod.number(),
@@ -174,7 +191,6 @@ export const CreateRoundBody = zod.object({
   description: zod.string().optional(),
   assignedToId: zod.number().nullish(),
   scheduledAt: zod.coerce.date().optional(),
-  shift: zod.enum(["dia", "noche", "ambos"]).optional(),
 });
 
 /**
@@ -191,7 +207,6 @@ export const GetRoundResponse = zod.object({
     companyName: zod.string(),
     description: zod.string().nullish(),
     status: zod.enum(["pending", "active", "completed"]),
-    shift: zod.enum(["dia", "noche", "ambos"]),
     assignedToId: zod.number().nullish(),
     assignedToName: zod.string().nullish(),
     createdById: zod.number(),

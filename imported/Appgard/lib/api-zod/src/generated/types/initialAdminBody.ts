@@ -6,11 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreateRoundBody {
+export interface InitialAdminBody {
+  rut: string;
   name: string;
-  companyName: string;
-  description?: string;
-  /** @nullable */
-  assignedToId?: number | null;
-  scheduledAt?: Date;
+  email: string;
+  phone: string;
+  accessCode: string;
 }

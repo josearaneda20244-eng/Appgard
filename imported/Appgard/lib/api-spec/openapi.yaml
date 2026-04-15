@@ -85,6 +85,40 @@ paths:
         "200":
           description: Logged out
 
+  /setup/status:
+    get:
+      operationId: getSetupStatus
+      tags: [auth]
+      summary: Check whether initial administrator setup is required
+      responses:
+        "200":
+          description: Setup status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetupStatus"
+
+  /setup/admin:
+    post:
+      operationId: createInitialAdmin
+      tags: [auth]
+      summary: Create the first administrator when the database is empty
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InitialAdminBody"
+      responses:
+        "201":
+          description: Initial administrator created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: Initial setup already completed
+
   /users:
     get:
       operationId: listUsers
@@ -655,6 +689,34 @@ components:
       required:
         - user
         - token
+
+    SetupStatus:
+      type: object
+      properties:
+        needsSetup:
+          type: boolean
+      required:
+        - needsSetup
+
+    InitialAdminBody:
+      type: object
+      properties:
+        rut:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        accessCode:
+          type: string
+      required:
+        - rut
+        - name
+        - email
+        - phone
+        - accessCode
 
     User:
       type: object

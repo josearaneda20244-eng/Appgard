@@ -2,11 +2,11 @@ import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, guardLocationsTable, usersTable, roundsTable } from "@workspace/db";
 import { UpdateLocationBody } from "@workspace/api-zod";
-import { getUserIdFromAuth } from "./auth";
+import { getUserIdFromAuth, requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
-router.post("/location/update", async (req, res): Promise<void> => {
+router.post("/location/update", requireAuth(), async (req, res): Promise<void> => {
   const parsed = UpdateLocationBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -48,7 +48,7 @@ router.post("/location/update", async (req, res): Promise<void> => {
   res.json({ message: "Ubicacion actualizada" });
 });
 
-router.get("/location/guards", async (_req, res): Promise<void> => {
+router.get("/location/guards", requireAuth(["supervisor", "admin"]), async (_req, res): Promise<void> => {
   const locations = await db.select().from(guardLocationsTable);
 
   const result = await Promise.all(

@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
 import { eq, sql, and, gte } from "drizzle-orm";
 import { db, usersTable, roundsTable, checkpointsTable, incidentsTable, panicAlertsTable, activityLogTable } from "@workspace/db";
+import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
-router.get("/dashboard/summary", async (_req, res): Promise<void> => {
+router.get("/dashboard/summary", requireAuth(), async (_req, res): Promise<void> => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -48,7 +49,7 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
   });
 });
 
-router.get("/dashboard/activity", async (_req, res): Promise<void> => {
+router.get("/dashboard/activity", requireAuth(), async (_req, res): Promise<void> => {
   const activities = await db
     .select()
     .from(activityLogTable)
@@ -71,7 +72,7 @@ router.get("/dashboard/activity", async (_req, res): Promise<void> => {
   res.json(result);
 });
 
-router.get("/dashboard/round-stats", async (_req, res): Promise<void> => {
+router.get("/dashboard/round-stats", requireAuth(), async (_req, res): Promise<void> => {
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
 
@@ -148,7 +149,7 @@ router.get("/dashboard/round-stats", async (_req, res): Promise<void> => {
 });
 
 // Top companies by average checkpoint completion score
-router.get("/dashboard/company-stats", async (_req, res): Promise<void> => {
+router.get("/dashboard/company-stats", requireAuth(["supervisor", "admin"]), async (_req, res): Promise<void> => {
   const allRounds = await db.select().from(roundsTable);
   const startedRounds = allRounds.filter((r) => r.status === "active" || r.status === "completed");
 
@@ -192,7 +193,7 @@ router.get("/dashboard/company-stats", async (_req, res): Promise<void> => {
 });
 
 // Per-guard performance
-router.get("/dashboard/guard-performance", async (_req, res): Promise<void> => {
+router.get("/dashboard/guard-performance", requireAuth(["supervisor", "admin"]), async (_req, res): Promise<void> => {
   const guards = await db.select().from(usersTable).where(eq(usersTable.role, "guard"));
 
   const result = await Promise.all(

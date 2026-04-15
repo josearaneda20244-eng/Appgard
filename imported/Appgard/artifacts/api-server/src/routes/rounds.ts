@@ -11,7 +11,7 @@ import {
   CompleteRoundParams,
   ListRoundsQueryParams,
 } from "@workspace/api-zod";
-import { getUserIdFromAuth } from "./auth";
+import { getUserIdFromAuth, requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
@@ -35,7 +35,7 @@ function formatRound(r: any, assignedToName: string | null, totalCheckpoints: nu
   };
 }
 
-router.get("/rounds", async (req, res): Promise<void> => {
+router.get("/rounds", requireAuth(), async (req, res): Promise<void> => {
   const params = ListRoundsQueryParams.safeParse(req.query);
 
   const conditions: any[] = [];
@@ -65,7 +65,7 @@ router.get("/rounds", async (req, res): Promise<void> => {
   res.json(result);
 });
 
-router.post("/rounds", async (req, res): Promise<void> => {
+router.post("/rounds", requireAuth(["supervisor", "admin"]), async (req, res): Promise<void> => {
   const parsed = CreateRoundBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -97,7 +97,7 @@ router.post("/rounds", async (req, res): Promise<void> => {
   res.status(201).json(formatRound(round, assignedToName, 0, 0));
 });
 
-router.get("/rounds/:id", async (req, res): Promise<void> => {
+router.get("/rounds/:id", requireAuth(), async (req, res): Promise<void> => {
   const params = GetRoundParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -137,7 +137,7 @@ router.get("/rounds/:id", async (req, res): Promise<void> => {
   });
 });
 
-router.patch("/rounds/:id", async (req, res): Promise<void> => {
+router.patch("/rounds/:id", requireAuth(["supervisor", "admin"]), async (req, res): Promise<void> => {
   const params = UpdateRoundParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -175,7 +175,7 @@ router.patch("/rounds/:id", async (req, res): Promise<void> => {
   res.json(formatRound(round, assignedToName, Number(cpCount?.total ?? 0), Number(cpCount?.completed ?? 0)));
 });
 
-router.delete("/rounds/:id", async (req, res): Promise<void> => {
+router.delete("/rounds/:id", requireAuth(["supervisor", "admin"]), async (req, res): Promise<void> => {
   const params = DeleteRoundParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -191,7 +191,7 @@ router.delete("/rounds/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
-router.post("/rounds/:id/start", async (req, res): Promise<void> => {
+router.post("/rounds/:id/start", requireAuth(), async (req, res): Promise<void> => {
   const params = StartRoundParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -234,7 +234,7 @@ router.post("/rounds/:id/start", async (req, res): Promise<void> => {
   res.json(formatRound(round, assignedToName, Number(cpCount?.total ?? 0), Number(cpCount?.completed ?? 0)));
 });
 
-router.post("/rounds/:id/complete", async (req, res): Promise<void> => {
+router.post("/rounds/:id/complete", requireAuth(), async (req, res): Promise<void> => {
   const params = CompleteRoundParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

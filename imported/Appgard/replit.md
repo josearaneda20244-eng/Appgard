@@ -76,14 +76,12 @@ pnpm workspace monorepo using TypeScript. Platform de operaciones de seguridad p
 - `GET /api/location/guards` — devuelve posiciones de todos los guardias
 - Validación por distancia Haversine para check-in de checkpoints
 
-## Test Users (Database)
+## Production Data Policy
 
-| RUT | Código | Rol |
-|-----|--------|-----|
-| 12.345.678-9 | ADMIN123 | Administrador |
-| 98.765.432-1 | SUP456 | Supervisor |
-| 11.111.111-1 | GUARD789 | Guardia |
-| 22.222.222-2 | SEC321 | Guardia |
+- La aplicación no carga usuarios, rondas, empresas ni incidentes de prueba.
+- Cuando la base de datos está vacía, la pantalla inicial permite crear el primer administrador real.
+- Los códigos de acceso se guardan con hash PBKDF2; no se guardan como texto simple para usuarios nuevos.
+- Las rutas operativas requieren autenticación y las acciones administrativas quedan limitadas a supervisores/administradores según corresponda.
 
 ## Architecture Notes
 

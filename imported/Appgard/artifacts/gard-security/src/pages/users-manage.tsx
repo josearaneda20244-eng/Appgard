@@ -166,19 +166,19 @@ export default function UsersManage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>RUT</Label>
-                  <Input value={form.rut} onChange={(e) => setForm((f) => ({ ...f, rut: e.target.value }))} placeholder="12.345.678-9" data-testid="input-user-rut" />
+                  <Input value={form.rut} onChange={(e) => setForm((f) => ({ ...f, rut: e.target.value }))} placeholder="RUT del usuario" data-testid="input-user-rut" />
                 </div>
                 <div className="space-y-2">
                   <Label>Nombre completo</Label>
-                  <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Juan Perez" data-testid="input-user-name" />
+                  <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nombre del usuario" data-testid="input-user-name" />
                 </div>
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="juan@empresa.cl" data-testid="input-user-email" />
+                  <Input value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="Email corporativo" data-testid="input-user-email" />
                 </div>
                 <div className="space-y-2">
                   <Label>Telefono</Label>
-                  <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+56 9 1234 5678" data-testid="input-user-phone" />
+                  <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="Telefono corporativo" data-testid="input-user-phone" />
                 </div>
                 <div className="space-y-2">
                   <Label>Rol</Label>

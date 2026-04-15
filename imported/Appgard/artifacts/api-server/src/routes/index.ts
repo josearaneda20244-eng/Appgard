@@ -9,7 +9,6 @@ import messagesRouter from "./messages";
 import panicRouter from "./panic";
 import locationRouter from "./location";
 import dashboardRouter from "./dashboard";
-import seedRouter from "./seed";
 import companiesRouter from "./companies";
 
 const router: IRouter = Router();
@@ -24,7 +23,6 @@ router.use(messagesRouter);
 router.use(panicRouter);
 router.use(locationRouter);
 router.use(dashboardRouter);
-router.use(seedRouter);
 router.use(companiesRouter);
 
 export default router;
