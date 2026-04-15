@@ -22,6 +22,7 @@ export default function Login() {
   const [accessCode, setAccessCode] = useState("");
   const [needsSetup, setNeedsSetup] = useState(false);
   const [checkingSetup, setCheckingSetup] = useState(true);
+  const [serverWaking, setServerWaking] = useState(false);
   const [setupSaving, setSetupSaving] = useState(false);
   const [setupForm, setSetupForm] = useState({
     rut: "",
@@ -34,24 +35,41 @@ export default function Login() {
   useEffect(() => {
     let active = true;
     const apiBase = import.meta.env.VITE_API_URL ?? "";
-    fetch(`${apiBase}/api/setup/status`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("No se pudo revisar la configuracion inicial");
-        return (await res.json()) as SetupStatus;
-      })
-      .then((data) => {
-        if (active) setNeedsSetup(data.needsSetup);
-      })
-      .catch(() => {
-        toast({
-          variant: "destructive",
-          title: "No se pudo conectar con el servidor",
-          description: "Revisa que la API y la base de datos esten configuradas correctamente.",
-        });
-      })
-      .finally(() => {
-        if (active) setCheckingSetup(false);
-      });
+
+    const attemptFetch = async (attempt: number): Promise<void> => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        const res = await fetch(`${apiBase}/api/setup/status`, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!res.ok) throw new Error("Respuesta no válida del servidor");
+        const data = (await res.json()) as SetupStatus;
+        if (active) {
+          setNeedsSetup(data.needsSetup);
+          setCheckingSetup(false);
+          setServerWaking(false);
+        }
+      } catch {
+        if (!active) return;
+        if (attempt < 5) {
+          if (active) setServerWaking(true);
+          await new Promise((r) => setTimeout(r, 5000));
+          if (active) await attemptFetch(attempt + 1);
+        } else {
+          if (active) {
+            setCheckingSetup(false);
+            setServerWaking(false);
+            toast({
+              variant: "destructive",
+              title: "No se pudo conectar con el servidor",
+              description: "Revisa que la API y la base de datos esten configuradas correctamente.",
+            });
+          }
+        }
+      }
+    };
+
+    attemptFetch(0);
     return () => {
       active = false;
     };
@@ -125,11 +143,13 @@ export default function Login() {
           <CardHeader className="pb-5">
             <CardTitle className="text-xl">{needsSetup ? "Configuracion inicial" : "Acceso Seguro"}</CardTitle>
             <CardDescription>
-              {checkingSetup
-                ? "Verificando estado del sistema..."
-                : needsSetup
-                  ? "Crea el primer administrador real. No se cargaran datos de prueba."
-                  : "Ingresa tu RUT y codigo de acceso para autenticarte."}
+              {serverWaking
+                ? "Iniciando servidor, espera un momento..."
+                : checkingSetup
+                  ? "Verificando estado del sistema..."
+                  : needsSetup
+                    ? "Crea el primer administrador real. No se cargaran datos de prueba."
+                    : "Ingresa tu RUT y codigo de acceso para autenticarte."}
             </CardDescription>
           </CardHeader>
           <CardContent>
