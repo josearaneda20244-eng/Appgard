@@ -1,0 +1,11 @@
+{
+  "installCommand": "cd imported/Appgard && pnpm install",
+  "buildCommand": "cd imported/Appgard && pnpm --filter @workspace/gard-security run build",
+  "outputDirectory": "imported/Appgard/artifacts/gard-security/dist",
+  "rewrites": [
+    {
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
