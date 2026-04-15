@@ -1,0 +1,1161 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Gard Security API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: rounds
+    description: Patrol rounds
+  - name: checkpoints
+    description: Round checkpoints
+  - name: incidents
+    description: Incident reports
+  - name: messages
+    description: Chat messages
+  - name: panic
+    description: Panic alerts
+  - name: dashboard
+    description: Dashboard summaries
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with RUT and access code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (admin/supervisor)
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [guard, supervisor, admin]
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /rounds:
+    get:
+      operationId: listRounds
+      tags: [rounds]
+      summary: List rounds
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, active, completed]
+        - name: assignedTo
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of rounds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Round"
+    post:
+      operationId: createRound
+      tags: [rounds]
+      summary: Create a new round (supervisor/admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoundBody"
+      responses:
+        "201":
+          description: Round created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+
+  /rounds/{id}:
+    get:
+      operationId: getRound
+      tags: [rounds]
+      summary: Get round details with checkpoints
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Round with checkpoints
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundDetail"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateRound
+      tags: [rounds]
+      summary: Update round
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoundBody"
+      responses:
+        "200":
+          description: Round updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+    delete:
+      operationId: deleteRound
+      tags: [rounds]
+      summary: Delete round
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /rounds/{id}/start:
+    post:
+      operationId: startRound
+      tags: [rounds]
+      summary: Start a round (guard)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Round started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+
+  /rounds/{id}/complete:
+    post:
+      operationId: completeRound
+      tags: [rounds]
+      summary: Complete a round
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Round completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+
+  /checkpoints:
+    get:
+      operationId: listCheckpoints
+      tags: [checkpoints]
+      summary: List checkpoints for a round
+      parameters:
+        - name: roundId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of checkpoints
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Checkpoint"
+    post:
+      operationId: createCheckpoint
+      tags: [checkpoints]
+      summary: Create checkpoint (supervisor)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCheckpointBody"
+      responses:
+        "201":
+          description: Checkpoint created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Checkpoint"
+
+  /checkpoints/{id}/checkin:
+    post:
+      operationId: checkinCheckpoint
+      tags: [checkpoints]
+      summary: Check in at a checkpoint (guard proximity)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckinBody"
+      responses:
+        "200":
+          description: Checked in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Checkpoint"
+
+  /incidents:
+    get:
+      operationId: listIncidents
+      tags: [incidents]
+      summary: List incidents
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, resolved, investigating]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+      responses:
+        "200":
+          description: List of incidents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Incident"
+    post:
+      operationId: createIncident
+      tags: [incidents]
+      summary: Report an incident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIncidentBody"
+      responses:
+        "201":
+          description: Incident created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+
+  /incidents/{id}:
+    get:
+      operationId: getIncident
+      tags: [incidents]
+      summary: Get incident details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Incident details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+    patch:
+      operationId: updateIncident
+      tags: [incidents]
+      summary: Update incident
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateIncidentBody"
+      responses:
+        "200":
+          description: Incident updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+
+  /messages:
+    get:
+      operationId: listMessages
+      tags: [messages]
+      summary: List chat messages
+      parameters:
+        - name: channelId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: sendMessage
+      tags: [messages]
+      summary: Send a chat message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageBody"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  /panic:
+    get:
+      operationId: listPanicAlerts
+      tags: [panic]
+      summary: List panic alerts
+      responses:
+        "200":
+          description: List of panic alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PanicAlert"
+    post:
+      operationId: triggerPanic
+      tags: [panic]
+      summary: Trigger panic alert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriggerPanicBody"
+      responses:
+        "201":
+          description: Panic alert triggered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PanicAlert"
+
+  /panic/{id}/resolve:
+    post:
+      operationId: resolvePanic
+      tags: [panic]
+      summary: Resolve a panic alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PanicAlert"
+
+  /location/update:
+    post:
+      operationId: updateLocation
+      tags: [users]
+      summary: Update guard GPS location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationUpdateBody"
+      responses:
+        "200":
+          description: Location updated
+
+  /location/guards:
+    get:
+      operationId: getGuardLocations
+      tags: [users]
+      summary: Get all guard locations (supervisor)
+      responses:
+        "200":
+          description: Guard locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GuardLocation"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Dashboard summary for supervisor
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Recent activity feed
+      responses:
+        "200":
+          description: Recent activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  /dashboard/round-stats:
+    get:
+      operationId: getRoundStats
+      tags: [dashboard]
+      summary: Round completion statistics
+      responses:
+        "200":
+          description: Round stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    LoginBody:
+      type: object
+      properties:
+        rut:
+          type: string
+        accessCode:
+          type: string
+      required:
+        - rut
+        - accessCode
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        rut:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [guard, supervisor, admin]
+        avatar:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - rut
+        - name
+        - email
+        - phone
+        - role
+        - active
+        - createdAt
+
+    CreateUserBody:
+      type: object
+      properties:
+        rut:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [guard, supervisor, admin]
+        accessCode:
+          type: string
+      required:
+        - rut
+        - name
+        - email
+        - phone
+        - role
+        - accessCode
+
+    UpdateUserBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [guard, supervisor, admin]
+        active:
+          type: boolean
+        accessCode:
+          type: string
+
+    Round:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        companyName:
+          type: string
+        description:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, active, completed]
+        assignedToId:
+          type: ["integer", "null"]
+        assignedToName:
+          type: ["string", "null"]
+        createdById:
+          type: integer
+        scheduledAt:
+          type: ["string", "null"]
+          format: date-time
+        startedAt:
+          type: ["string", "null"]
+          format: date-time
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+        totalCheckpoints:
+          type: integer
+        completedCheckpoints:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - companyName
+        - status
+        - createdById
+        - totalCheckpoints
+        - completedCheckpoints
+        - createdAt
+
+    RoundDetail:
+      type: object
+      properties:
+        round:
+          $ref: "#/components/schemas/Round"
+        checkpoints:
+          type: array
+          items:
+            $ref: "#/components/schemas/Checkpoint"
+      required:
+        - round
+        - checkpoints
+
+    CreateRoundBody:
+      type: object
+      properties:
+        name:
+          type: string
+        companyName:
+          type: string
+        description:
+          type: string
+        assignedToId:
+          type: ["integer", "null"]
+        scheduledAt:
+          type: string
+          format: date-time
+      required:
+        - name
+        - companyName
+
+    UpdateRoundBody:
+      type: object
+      properties:
+        name:
+          type: string
+        companyName:
+          type: string
+        description:
+          type: string
+        assignedToId:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [pending, active, completed]
+
+    Checkpoint:
+      type: object
+      properties:
+        id:
+          type: integer
+        roundId:
+          type: integer
+        name:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        radius:
+          type: number
+        orderIndex:
+          type: integer
+        checkedIn:
+          type: boolean
+        checkedInAt:
+          type: ["string", "null"]
+          format: date-time
+        checkedInById:
+          type: ["integer", "null"]
+      required:
+        - id
+        - roundId
+        - name
+        - latitude
+        - longitude
+        - radius
+        - orderIndex
+        - checkedIn
+
+    CreateCheckpointBody:
+      type: object
+      properties:
+        roundId:
+          type: integer
+        name:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        radius:
+          type: number
+        orderIndex:
+          type: integer
+      required:
+        - roundId
+        - name
+        - latitude
+        - longitude
+        - radius
+        - orderIndex
+
+    CheckinBody:
+      type: object
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+      required:
+        - latitude
+        - longitude
+
+    Incident:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        status:
+          type: string
+          enum: [open, investigating, resolved]
+        reportedById:
+          type: integer
+        reportedByName:
+          type: string
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - title
+        - description
+        - priority
+        - status
+        - reportedById
+        - reportedByName
+        - createdAt
+
+    CreateIncidentBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        latitude:
+          type: number
+        longitude:
+          type: number
+      required:
+        - title
+        - description
+        - priority
+
+    UpdateIncidentBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        status:
+          type: string
+          enum: [open, investigating, resolved]
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        channelId:
+          type: string
+        senderId:
+          type: integer
+        senderName:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - channelId
+        - senderId
+        - senderName
+        - content
+        - createdAt
+
+    SendMessageBody:
+      type: object
+      properties:
+        channelId:
+          type: string
+        content:
+          type: string
+      required:
+        - channelId
+        - content
+
+    PanicAlert:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        status:
+          type: string
+          enum: [active, resolved]
+        message:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - userId
+        - userName
+        - latitude
+        - longitude
+        - status
+        - createdAt
+
+    TriggerPanicBody:
+      type: object
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+        message:
+          type: string
+      required:
+        - latitude
+        - longitude
+
+    LocationUpdateBody:
+      type: object
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+      required:
+        - latitude
+        - longitude
+
+    GuardLocation:
+      type: object
+      properties:
+        userId:
+          type: integer
+        userName:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        updatedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [online, on_round, offline]
+      required:
+        - userId
+        - userName
+        - latitude
+        - longitude
+        - updatedAt
+        - status
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalGuards:
+          type: integer
+        activeGuards:
+          type: integer
+        activeRounds:
+          type: integer
+        completedRoundsToday:
+          type: integer
+        openIncidents:
+          type: integer
+        activePanicAlerts:
+          type: integer
+      required:
+        - totalGuards
+        - activeGuards
+        - activeRounds
+        - completedRoundsToday
+        - openIncidents
+        - activePanicAlerts
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [round_started, round_completed, checkpoint_reached, incident_reported, panic_triggered, panic_resolved]
+        description:
+          type: string
+        userName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - description
+        - userName
+        - createdAt
+
+    RoundStats:
+      type: object
+      properties:
+        totalRoundsThisWeek:
+          type: integer
+        completedRoundsThisWeek:
+          type: integer
+        completionRate:
+          type: number
+        averageCompletionTime:
+          type: number
+        roundsByDay:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoundsByDayItem"
+      required:
+        - totalRoundsThisWeek
+        - completedRoundsThisWeek
+        - completionRate
+        - averageCompletionTime
+        - roundsByDay
+
+    RoundsByDayItem:
+      type: object
+      properties:
+        day:
+          type: string
+        completed:
+          type: integer
+        total:
+          type: integer
+      required:
+        - day
+        - completed
+        - total
